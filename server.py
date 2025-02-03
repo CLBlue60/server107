@@ -1,69 +1,47 @@
-from flask import Flask, request, jsonify
-import json
-from http import HTTPStatus
+from flask import Flask, jsonify, request
+from pymongo import MongoClient
+from bson.objectid import ObjectId
 
 app = Flask(__name__)
 
-# Welcome page on root endpoint
-@app.get('/')
-def home():
-    return "Welcome to the Flask REST API!"
+# MongoDB connection
+client = MongoClient('mongodb://localhost:27017/')  # Replace with your MongoDB URI
+db = client['product_catalog']  # Database name
+products_collection = db['products']  # Collection name
 
-# About page
-@app.get('/about')
-def about():
-    return """
-    <h1>About Page</h1>
-    <p>This is the about page for the Flask REST API.</p>
-    """
+# Root endpoint
+@app.route('/', methods=['GET'])
+def welcome():
+    return jsonify({"message": "Welcome to the Product Catalog API with MongoDB!"})
 
-# Sample list of products
-products = [
-    {"id": 1, "name": "Product A", "price": 10.99},
-    {"id": 2, "name": "Product B", "price": 20.99},
-]
+# GET /api/catalog endpoint
+@app.route('/api/catalog', methods=['GET'])
+def get_catalog():
+    catalog = list(products_collection.find({}, {'_id': 0}))  # Exclude MongoDB ObjectId from response
+    return jsonify(catalog)
 
-# Get all products
-@app.get('/api/product')
-def get_products():
-    return jsonify(products), HTTPStatus.OK
+# POST /api/catalog endpoint
+@app.route('/api/catalog', methods=['POST'])
+def add_product():
+    product = request.json
+    if not product or 'name' not in product or 'price' not in product or 'category' not in product:
+        return jsonify({"error": "Invalid product data"}), 400
 
-# Get the number of products in the catalog
-@app.get('/api/product/count')
-def get_product_count():
-    return jsonify({"count": len(products)}), HTTPStatus.OK
+    # Insert product into MongoDB
+    product_id = products_collection.insert_one(product).inserted_id
+    return jsonify({"message": "Product added successfully", "product_id": str(product_id)}), 201
 
-# Post a new product
-@app.post('/api/product')
-def save_product():
-    product = request.get_json()
-    products.append(product)
-    return jsonify({"message": "Product saved!", "product": product}), HTTPStatus.CREATED
+# GET /api/reports/total endpoint
+@app.route('/api/reports/total', methods=['GET'])
+def get_total_value():
+    total_value = sum(product['price'] for product in products_collection.find({}))
+    return jsonify({"total_value": total_value})
 
-# Delete a product by index
-@app.delete('/api/product/<int:index>')
-def delete_product(index):
-    if 0 <= index < len(products):
-        deleted_product = products.pop(index)
-        return jsonify({"message": "Product deleted!", "product": deleted_product}), HTTPStatus.OK
-    else:
-        return jsonify({"message": "Product not found"}), HTTPStatus.NOT_FOUND
+# GET /api/products/<category> endpoint
+@app.route('/api/products/<category>', methods=['GET'])
+def get_products_by_category(category):
+    products = list(products_collection.find({"category": category}, {'_id': 0}))
+    return jsonify(products)
 
-# Update a product by index
-@app.put('/api/product/<int:index>')
-def update_product(index):
-    product = request.get_json()
-    if 0 <= index < len(products):
-        products[index] = product
-        return jsonify({"message": "Product updated!", "product": product}), HTTPStatus.OK
-    else:
-        return jsonify({"message": "Product not found"}), HTTPStatus.NOT_FOUND
-
-# Run the Flask app
 if __name__ == '__main__':
     app.run(debug=True)
-
-#app.post('/')
-#app.put('/')
-#app.patch('/')
-#app.delete('/')

@@ -1,0 +1,24 @@
+
+
+
+4) install flask
+win py -m install flask
+
+(5) run flask
+win py -m flask run
+
+(6) install pymongo
+win py -m install pymongo
+
+(7) run pymongo
+win py -m pymongo
+
+pymongo methods
+find ({})
+find_one_and_update()
+find_one_and_delete()
+insert_one
+delete_one
+update_one
+update_many
+delete_many
