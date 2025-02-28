@@ -4,7 +4,7 @@ from config import db  # Import the database connection
 product_routes = Blueprint('product_routes', __name__)
 
 # MongoDB collections
-products_collection = db['products']  
+products_collection = db['products']   
 coupons_collection = db['coupons']
 
 # GET /api/products endpoint
